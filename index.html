@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manhattan Community Mapping</title>
+  
+  <!-- Mapbox -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --color-bg: #FAFAF9;
+      --color-surface: #FFFFFF;
+      --color-primary: #1D4ED8;
+      --color-primary-hover: #1E40AF;
+      --color-text: #1C1917;
+      --color-text-muted: #57534E;
+      --color-border: #E7E5E4;
+      --color-error: #DC2626;
+      --color-success: #16A34A;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: var(--color-text-muted);
+      font-size: 1rem;
+    }
+    
+    .form-card {
+      background: var(--color-surface);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    
+    /* Map Section */
+    .map-section {
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .map-header {
+      padding: 24px 24px 16px;
+    }
+    
+    .map-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .required-star {
+      color: var(--color-error);
+    }
+    
+    .map-hint {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+    }
+    
+    #map {
+      height: 350px;
+      width: 100%;
+    }
+    
+    .map-status {
+      padding: 12px 24px;
+      background: #F5F5F4;
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .map-status.selected {
+      background: #ECFDF5;
+      color: var(--color-success);
+    }
+    
+    .map-status-icon {
+      width: 18px;
+      height: 18px;
+    }
+    
+    /* Form Fields */
+    .form-fields {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    label {
+      font-weight: 500;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .field-hint {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      font-weight: 400;
+    }
+    
+    select, textarea, input[type="text"], input[type="email"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-surface);
+      color: var(--color-text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    
+    select:focus, textarea:focus, input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+    }
+    
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2357534E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+    }
+    
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .optional-tag {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      font-weight: 400;
+      margin-left: 4px;
+    }
+    
+    /* Error States */
+    .form-group.error select,
+    .form-group.error textarea,
+    .form-group.error input {
+      border-color: var(--color-error);
+    }
+    
+    .error-message {
+      font-size: 0.8rem;
+      color: var(--color-error);
+      display: none;
+    }
+    
+    .form-group.error .error-message {
+      display: block;
+    }
+    
+    /* Submit Button */
+    .submit-section {
+      padding: 0 24px 24px;
+    }
+    
+    button[type="submit"] {
+      width: 100%;
+      padding: 14px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    
+    button[type="submit"]:hover {
+      background: var(--color-primary-hover);
+    }
+    
+    button[type="submit"]:active {
+      transform: scale(0.98);
+    }
+    
+    button[type="submit"]:disabled {
+      background: #A8A29E;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Success State */
+    .success-message {
+      display: none;
+      text-align: center;
+      padding: 60px 24px;
+    }
+    
+    .success-message.visible {
+      display: block;
+    }
+    
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      background: #ECFDF5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    
+    .success-icon svg {
+      width: 32px;
+      height: 32px;
+      color: var(--color-success);
+    }
+    
+    .success-message h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+    
+    .success-message p {
+      color: var(--color-text-muted);
+    }
+
+    .submit-another-btn {
+      margin-top: 24px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 500;
+      font-family: inherit;
+      background: transparent;
+      color: var(--color-primary);
+      border: 2px solid var(--color-primary);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .submit-another-btn:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+    
+    .form-content {
+      display: block;
+    }
+    
+    .form-content.hidden {
+      display: none;
+    }
+    
+    /* Custom Marker */
+    .custom-marker {
+      width: 32px;
+      height: 40px;
+      cursor: pointer;
+    }
+    
+    /* Responsive */
+    @media (max-width: 480px) {
+      .container {
+        padding: 24px 16px 40px;
+      }
+      
+      h1 {
+        font-size: 1.65rem;
+      }
+      
+      #map {
+        height: 280px;
+      }
+      
+      .map-header, .form-fields, .submit-section {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Community Mapping</h1>
+      <p class="subtitle">Tell us what matters in Manhattan</p>
+    </header>
+    
+    <div class="form-card">
+      <form id="survey-form">
+        <div class="form-content" id="form-content">
+          <!-- Map Section -->
+          <div class="map-section">
+            <div class="map-header">
+              <div class="map-label">
+                Drop a pin on the map <span class="required-star">*</span>
+              </div>
+              <div class="map-hint">Click anywhere on the map to select a location</div>
+            </div>
+            <div id="map"></div>
+            <div class="map-status" id="map-status">
+              <svg class="map-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <span id="map-status-text">No location selected</span>
+            </div>
+          </div>
+          
+          <!-- Form Fields -->
+          <div class="form-fields">
+            <!-- Question 1 -->
+            <div class="form-group" id="group-map-type">
+              <label>
+                What map did you add to? <span class="required-star">*</span>
+              </label>
+              <select id="map-type" required>
+                <option value="">Select an option...</option>
+                <option value="Arts and cultural gems">Arts and cultural gems</option>
+                <option value="Storefronts and small businesses">Storefronts and small businesses</option>
+                <option value="Parks">Parks</option>
+                <option value="Streetscape">Streetscape</option>
+              </select>
+              <span class="error-message">Please select a map type</span>
+            </div>
+            
+            <!-- Question 2 (conditional) -->
+            <div class="form-group" id="group-pin-type" style="display: none;">
+              <label>
+                What did you pin? <span class="required-star">*</span>
+              </label>
+              <select id="pin-type" required>
+                <option value="">Select an option...</option>
+              </select>
+              <span class="error-message">Please select what you pinned</span>
+            </div>
+            
+            <!-- Question 3 -->
+            <div class="form-group" id="group-story">
+              <label>
+                What's the story behind what you pinned? <span class="required-star">*</span>
+              </label>
+              <textarea id="story" placeholder="Tell us about this place..." required></textarea>
+              <span class="error-message">Please share the story behind your pin</span>
+            </div>
+            
+            <!-- Question 4 -->
+            <div class="form-group">
+              <label>
+                Name <span class="optional-tag">(optional)</span>
+              </label>
+              <input type="text" id="name" placeholder="Your name">
+            </div>
+            
+            <!-- Question 5 -->
+            <div class="form-group">
+              <label>
+                Email <span class="optional-tag">(optional)</span>
+              </label>
+              <input type="email" id="email" placeholder="you@example.com">
+            </div>
+          </div>
+          
+          <!-- Submit -->
+          <div class="submit-section">
+            <button type="submit" id="submit-btn">Submit</button>
+          </div>
+        </div>
+        
+        <!-- Success Message -->
+        <div class="success-message" id="success-message">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+          </div>
+          <h2>Thank you!</h2>
+          <p>Your contribution has been recorded.</p>
+          <button type="button" class="submit-another-btn" id="submit-another-btn">Submit another</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    // ============================================
+    // CONFIGURATION - Update these values
+    // ============================================
+    
+    // Replace with your Mapbox access token
+    const MAPBOX_TOKEN = 'pk.eyJ1IjoiYmV0YW55YyIsImEiOiJjbWwxOTMwYjgwNTdoM2hwemJrYmduZmt2In0.eicIosNvd4f8gK7jsVBMkA';
+    
+    // Replace with your Google Apps Script web app URL
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8okJR2td4yVJFlFeKhclXH1ilmTONvjcju0exTzRlfDWWj_ODeQDl1Y06Db71vKqr/exec';
+    
+    // ============================================
+    // PIN TYPE OPTIONS
+    // ============================================
+    
+    const pinTypeOptions = {
+      'Arts and cultural gems': [
+        'My favorite place',
+        'Where I\'m from',
+        'A hidden gem that needs protection'
+      ],
+      'Storefronts and small businesses': [
+        'My favorite small business',
+        'Empty storefront that should be filled'
+      ],
+      'Parks': [
+        'Where could we use more green',
+        'Parks that need maintaining'
+      ],
+      'Streetscape': [
+        'Missing bench',
+        'Missing public bathroom',
+        'Missing wifi',
+        'Missing trash can',
+        'Something else'
+      ]
+    };
+    
+    // ============================================
+    // MAP SETUP
+    // ============================================
+    
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+    
+    // Manhattan bounds
+    const manhattanBounds = [
+      [-74.0479, 40.6829], // Southwest
+      [-73.9067, 40.8820]  // Northeast
+    ];
+    
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-73.985, 40.758], // Midtown Manhattan
+      zoom: 12,
+      maxBounds: manhattanBounds
+    });
+    
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    // Marker state
+    let marker = null;
+    let selectedLat = null;
+    let selectedLng = null;
+    
+    // Create custom marker element
+    function createMarkerElement() {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 11 16 24 16 24s16-13 16-24c0-8.837-7.163-16-16-16z" fill="#1D4ED8"/>
+          <circle cx="16" cy="16" r="6" fill="white"/>
+        </svg>
+      `;
+      el.className = 'custom-marker';
+      return el;
+    }
+    
+    // Handle map click
+    map.on('click', (e) => {
+      selectedLat = e.lngLat.lat;
+      selectedLng = e.lngLat.lng;
+      
+      // Remove existing marker
+      if (marker) {
+        marker.remove();
+      }
+      
+      // Add new marker (draggable)
+      marker = new mapboxgl.Marker({ element: createMarkerElement(), draggable: true })
+        .setLngLat([selectedLng, selectedLat])
+        .addTo(map);
+
+      // Update coordinates when marker is dragged
+      marker.on('dragend', () => {
+        const lngLat = marker.getLngLat();
+        selectedLat = lngLat.lat;
+        selectedLng = lngLat.lng;
+        document.getElementById('map-status-text').textContent = `Location selected: ${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`;
+      });
+      
+      // Update status
+      const statusEl = document.getElementById('map-status');
+      const statusTextEl = document.getElementById('map-status-text');
+      statusEl.classList.add('selected');
+      statusTextEl.textContent = `Location selected: ${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`;
+    });
+    
+    // ============================================
+    // CONDITIONAL DROPDOWN LOGIC
+    // ============================================
+    
+    const mapTypeSelect = document.getElementById('map-type');
+    const pinTypeSelect = document.getElementById('pin-type');
+    const pinTypeGroup = document.getElementById('group-pin-type');
+    
+    mapTypeSelect.addEventListener('change', () => {
+      const selectedMapType = mapTypeSelect.value;
+      
+      if (selectedMapType && pinTypeOptions[selectedMapType]) {
+        // Show and populate pin type dropdown
+        pinTypeGroup.style.display = 'flex';
+        
+        // Clear existing options
+        pinTypeSelect.innerHTML = '<option value="">Select an option...</option>';
+        
+        // Add new options
+        pinTypeOptions[selectedMapType].forEach(option => {
+          const optEl = document.createElement('option');
+          optEl.value = option;
+          optEl.textContent = option;
+          pinTypeSelect.appendChild(optEl);
+        });
+      } else {
+        // Hide pin type dropdown
+        pinTypeGroup.style.display = 'none';
+        pinTypeSelect.value = '';
+      }
+    });
+    
+    // ============================================
+    // FORM VALIDATION & SUBMISSION
+    // ============================================
+    
+    const form = document.getElementById('survey-form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    function validateForm() {
+      let isValid = true;
+      
+      // Clear previous errors
+      document.querySelectorAll('.form-group').forEach(g => g.classList.remove('error'));
+      
+      // Check location
+      if (!selectedLat || !selectedLng) {
+        const statusEl = document.getElementById('map-status');
+        statusEl.style.background = '#FEF2F2';
+        statusEl.style.color = '#DC2626';
+        document.getElementById('map-status-text').textContent = 'Please select a location on the map';
+        isValid = false;
+      }
+      
+      // Check map type
+      if (!mapTypeSelect.value) {
+        document.getElementById('group-map-type').classList.add('error');
+        isValid = false;
+      }
+      
+      // Check pin type (only if map type is selected)
+      if (mapTypeSelect.value && !pinTypeSelect.value) {
+        document.getElementById('group-pin-type').classList.add('error');
+        isValid = false;
+      }
+      
+      // Check story
+      if (!document.getElementById('story').value.trim()) {
+        document.getElementById('group-story').classList.add('error');
+        isValid = false;
+      }
+      
+      return isValid;
+    }
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!validateForm()) {
+        return;
+      }
+      
+      // Disable submit button
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      
+      // Gather form data
+      const formData = {
+        latitude: selectedLat,
+        longitude: selectedLng,
+        mapType: mapTypeSelect.value,
+        pinType: pinTypeSelect.value,
+        story: document.getElementById('story').value.trim(),
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        timestamp: new Date().toISOString()
+      };
+      
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors', // Apps Script requires this
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        // Show success (no-cors means we can't read the response, but it usually works)
+        document.getElementById('form-content').classList.add('hidden');
+        document.getElementById('success-message').classList.add('visible');
+        
+      } catch (error) {
+        console.error('Submission error:', error);
+        alert('There was an error submitting the form. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit';
+      }
+    });
+
+    // ============================================
+    // SUBMIT ANOTHER
+    // ============================================
+
+    document.getElementById('submit-another-btn').addEventListener('click', () => {
+      // Reset form fields
+      form.reset();
+
+      // Reset map marker
+      if (marker) {
+        marker.remove();
+        marker = null;
+      }
+      selectedLat = null;
+      selectedLng = null;
+
+      // Reset map status
+      const statusEl = document.getElementById('map-status');
+      statusEl.classList.remove('selected');
+      statusEl.style.background = '';
+      statusEl.style.color = '';
+      document.getElementById('map-status-text').textContent = 'No location selected';
+
+      // Reset map view
+      map.jumpTo({ center: [-73.985, 40.758], zoom: 12 });
+
+      // Hide pin type dropdown
+      pinTypeGroup.style.display = 'none';
+
+      // Reset submit button
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit';
+
+      // Clear error states
+      document.querySelectorAll('.form-group').forEach(g => g.classList.remove('error'));
+
+      // Show form, hide success
+      document.getElementById('form-content').classList.remove('hidden');
+      document.getElementById('success-message').classList.remove('visible');
+    });
+  </script>
+</body>
+</html>
