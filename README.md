@@ -1,4 +1,4 @@
-# BetaNYC Community Mapping Form
+# MBPO Community Mapping Form
 
 A simple map-based survey form for collecting map based survey responses for the 2026 Manhattan Borough President convention. Built with Mapbox GL JS and Google Apps Script.
 
