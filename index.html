@@ -21,7 +21,7 @@
       --color-primary: #1D4ED8;
       --color-primary-hover: #1E40AF;
       --color-text: #1C1917;
-      --color-text-muted: #57534E;
+      --color-text-muted: #1C1917;
       --color-border: #E7E5E4;
       --color-error: #DC2626;
       --color-success: #16A34A;
@@ -68,7 +68,7 @@
     
     .subtitle {
       color: #ffffff;
-      font-size: 1rem;
+      font-size: 1.2rem;
     }
     
     .form-card {
@@ -197,10 +197,68 @@
       margin-left: 4px;
     }
     
+    /* Radio Button Styles */
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .radio-section-label {
+      font-size: 1rem;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    .radio-section-label:first-child {
+      margin-top: 0;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .radio-option:hover {
+      border-color: var(--color-primary);
+      background: rgba(29, 78, 216, 0.02);
+    }
+
+    .radio-option input[type="radio"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+    }
+
+    .radio-option span {
+      font-size: 1rem;
+      color: var(--color-text);
+    }
+
+    .radio-option.selected {
+      border-color: var(--color-primary);
+      background: rgba(29, 78, 216, 0.05);
+    }
+
     /* Error States */
     .form-group.error select,
     .form-group.error textarea,
     .form-group.error input {
+      border-color: var(--color-error);
+    }
+
+    .form-group.error .radio-option {
       border-color: var(--color-error);
     }
     
@@ -373,9 +431,9 @@
               </label>
               <select id="map-type" required>
                 <option value="">Select an option...</option>
-                <option value="Arts and cultural gems">Arts and cultural gems</option>
-                <option value="Storefronts and small businesses">Storefronts and small businesses</option>
-                <option value="Parks">Parks</option>
+                <option value="Arts & Culture">Arts & Culture</option>
+                <option value="Small Businesses">Small Businesses</option>
+                <option value="Parks & Open Space">Parks & Open Space</option>
                 <option value="Streetscape">Streetscape</option>
                 <option value="Housing">Housing</option>
               </select>
@@ -387,9 +445,9 @@
               <label>
                 What did you pin? <span class="required-star">*</span>
               </label>
-              <select id="pin-type" required>
-                <option value="">Select an option...</option>
-              </select>
+              <div class="radio-group" id="pin-type-radios">
+                <!-- Radio options populated by JavaScript -->
+              </div>
               <span class="error-message">Please select what you pinned</span>
             </div>
             
@@ -456,26 +514,27 @@
     // ============================================
     
     const pinTypeOptions = {
-      'Arts and cultural gems': [
-        'Hidden artistic or cultural gem',
-        'Institution that closed or needs support',
-        'Public area that should have more art!'
+      'Arts & Culture': [
+        'My favorite hidden gem',
+        'Support for an arts organization',
+        'New cultural spaces',
+        'Public art installations'
       ],
-      'Storefronts and small businesses': [
+      'Small Businesses': [
         'My favorite small business',
-        'Worst empty storefront'
+        'Empty storefronts in our borough'
       ],
-      'Parks': [
-        'My favorite park or open space',
-        'Park that needs maintenance',
-        'Place that deserves more green!'
+      'Parks & Open Space': [
+        'New open space',
+        'A park redesign',
+        'More public programming',
+        'Improved maintenance'
       ],
       'Streetscape': [
-        'Missing public restroom',
-        'Repaved road or repaired sidewalk needed',
-        'Needs trash pickup',
-        'Missing trash can',
-        'Needs working streetlight'
+        'More public restrooms',
+        'More trees and greenery',
+        'Improved pedestrian safety',
+        'Improved lighting'
       ],
       'Housing': [
         'More new housing',
@@ -554,34 +613,81 @@
     });
     
     // ============================================
-    // CONDITIONAL DROPDOWN LOGIC
+    // CONDITIONAL RADIO BUTTON LOGIC
     // ============================================
-    
+
     const mapTypeSelect = document.getElementById('map-type');
-    const pinTypeSelect = document.getElementById('pin-type');
+    const pinTypeRadios = document.getElementById('pin-type-radios');
     const pinTypeGroup = document.getElementById('group-pin-type');
-    
+
+    // Get selected pin type value from radio buttons
+    function getSelectedPinType() {
+      const selected = document.querySelector('input[name="pin-type"]:checked');
+      return selected ? selected.value : '';
+    }
+
+    // Create a radio option element
+    function createRadioOption(value, index) {
+      const label = document.createElement('label');
+      label.className = 'radio-option';
+      label.innerHTML = `
+        <input type="radio" name="pin-type" value="${value}" id="pin-type-${index}">
+        <span>${value}</span>
+      `;
+
+      // Add click handler for selected state
+      label.addEventListener('click', () => {
+        document.querySelectorAll('.radio-option').forEach(opt => opt.classList.remove('selected'));
+        label.classList.add('selected');
+      });
+
+      return label;
+    }
+
+    // Create a section label element
+    function createSectionLabel(text) {
+      const div = document.createElement('div');
+      div.className = 'radio-section-label';
+      div.textContent = text;
+      return div;
+    }
+
     mapTypeSelect.addEventListener('change', () => {
       const selectedMapType = mapTypeSelect.value;
-      
+
       if (selectedMapType && pinTypeOptions[selectedMapType]) {
-        // Show and populate pin type dropdown
+        // Show pin type group
         pinTypeGroup.style.display = 'flex';
-        
-        // Clear existing options
-        pinTypeSelect.innerHTML = '<option value="">Select an option...</option>';
-        
-        // Add new options
-        pinTypeOptions[selectedMapType].forEach(option => {
-          const optEl = document.createElement('option');
-          optEl.value = option;
-          optEl.textContent = option;
-          pinTypeSelect.appendChild(optEl);
-        });
+
+        // Clear existing radios
+        pinTypeRadios.innerHTML = '';
+
+        const options = pinTypeOptions[selectedMapType];
+        let radioIndex = 0;
+
+        if (selectedMapType === 'Arts & Culture') {
+          // Arts & Culture: First option, then "Or, where you'd like to see...", then rest
+          pinTypeRadios.appendChild(createRadioOption(options[0], radioIndex++));
+          pinTypeRadios.appendChild(createSectionLabel("Or, where you'd like to see..."));
+          for (let i = 1; i < options.length; i++) {
+            pinTypeRadios.appendChild(createRadioOption(options[i], radioIndex++));
+          }
+        } else if (selectedMapType === 'Small Businesses') {
+          // Small Businesses: Just options, no section label
+          options.forEach(option => {
+            pinTypeRadios.appendChild(createRadioOption(option, radioIndex++));
+          });
+        } else {
+          // Housing, Parks & Open Space, Streetscape: "Where I'd like to see..." then options
+          pinTypeRadios.appendChild(createSectionLabel("Where I'd like to see..."));
+          options.forEach(option => {
+            pinTypeRadios.appendChild(createRadioOption(option, radioIndex++));
+          });
+        }
       } else {
-        // Hide pin type dropdown
+        // Hide pin type group
         pinTypeGroup.style.display = 'none';
-        pinTypeSelect.value = '';
+        pinTypeRadios.innerHTML = '';
       }
     });
     
@@ -614,7 +720,7 @@
       }
       
       // Check pin type (only if map type is selected)
-      if (mapTypeSelect.value && !pinTypeSelect.value) {
+      if (mapTypeSelect.value && !getSelectedPinType()) {
         document.getElementById('group-pin-type').classList.add('error');
         isValid = false;
       }
@@ -644,7 +750,7 @@
         latitude: selectedLat,
         longitude: selectedLng,
         mapType: mapTypeSelect.value,
-        pinType: pinTypeSelect.value,
+        pinType: getSelectedPinType(),
         story: document.getElementById('story').value.trim(),
         name: document.getElementById('name').value.trim(),
         email: document.getElementById('email').value.trim(),
@@ -699,8 +805,9 @@
       // Reset map view
       map.jumpTo({ center: [-73.985, 40.758], zoom: 12 });
 
-      // Hide pin type dropdown
+      // Hide and clear pin type radios
       pinTypeGroup.style.display = 'none';
+      pinTypeRadios.innerHTML = '';
 
       // Reset submit button
       submitBtn.disabled = false;
