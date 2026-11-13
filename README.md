@@ -2,10 +2,24 @@
 
 A simple map-based survey form for collecting map based survey responses for the 2026 Manhattan Borough President convention. Built with Mapbox GL JS and Google Apps Script.
 
+**What's changed:** every change a person filling in the survey would notice, newest first, is in [`WHATS-CHANGED.md`](WHATS-CHANGED.md) and on the site at https://betanyc.github.io/mbp-mapping-manhattan/whats-changed.html, linked from the bottom of the survey page.
+
 ## Files
 
 - `index.html` - The form page with Mapbox map and survey questions
 - `apps-script.js` - Google Apps Script code for the backend
+- `WHATS-CHANGED.md` - what changed, newest first; `whats-changed.html` is built from it
+- `scripts/whats_changed.py` - builds and checks that page. It is a copy of a shared BetaNYC file: do not edit it here.
+
+## Keeping What's changed current
+
+A change a reader would notice gets an entry at the top of `WHATS-CHANGED.md`, dated the day it is merged. If that day has moved on since the entry was written, the last commit before merge changes the entry's date to the merge date and rebuilds the page. Never edit or delete an old entry; add a dated `- **Update YYYY-MM-DD:**` line instead. Rebuild the page with:
+
+```bash
+python3 scripts/whats_changed.py render WHATS-CHANGED.md --format fragment --into whats-changed.html --repo-url https://github.com/BetaNYC/mbp-mapping-manhattan
+```
+
+A check runs on every pull request.
 
 ## Setup
 
